@@ -79,8 +79,7 @@ def run_simulation(lview, func, vals, parameters, fname_i, N=None, overwrite=Fal
             result = map_async.result()
             df = pd.DataFrame(result)
 
-            common_keys = common_elements(df.columns, parameters.keys())
-            if common_keys:
+            if common_keys := common_elements(df.columns, parameters.keys()):
                 raise Exception(
                     "Parameters in both function result and function input",
                     f": {common_keys}",
@@ -437,12 +436,11 @@ def smooth_bump(params, pot_params):
     V_r = params["V_r"]
     V_0 = pot_params["V_0"]
     x0 = pot_params["x0"]
-    V = lambda x: (  # noqa: E731
+    return lambda x: (  # noqa: E731
         gaussian(x, V_0, x0, sigma)
         + V_l
         + (V_r - V_l) * 0.5 * (1 + np.tanh((x - x0) / sigma))
     )
-    return V
 
 
 @memoize

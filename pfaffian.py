@@ -24,23 +24,22 @@ def householder_real(x):
 
     if sigma == 0:
         return (np.zeros(x.shape[0]), 0, x[0])
+    norm_x = math.sqrt(x[0] ** 2 + sigma)
+
+    v = x.copy()
+
+    # depending on whether x[0] is positive or negatvie
+    # choose the sign
+    if x[0] <= 0:
+        v[0] -= norm_x
+        alpha = +norm_x
     else:
-        norm_x = math.sqrt(x[0] ** 2 + sigma)
+        v[0] += norm_x
+        alpha = -norm_x
 
-        v = x.copy()
+    v /= np.linalg.norm(v)
 
-        # depending on whether x[0] is positive or negatvie
-        # choose the sign
-        if x[0] <= 0:
-            v[0] -= norm_x
-            alpha = +norm_x
-        else:
-            v[0] += norm_x
-            alpha = -norm_x
-
-        v /= np.linalg.norm(v)
-
-        return (v, 2, alpha)
+    return (v, 2, alpha)
 
 
 def householder_complex(x):
@@ -57,16 +56,15 @@ def householder_complex(x):
 
     if sigma == 0:
         return (np.zeros(x.shape[0]), 0, x[0])
-    else:
-        norm_x = cmath.sqrt(x[0].conjugate() * x[0] + sigma)
+    norm_x = cmath.sqrt(x[0].conjugate() * x[0] + sigma)
 
-        v = x.copy()
+    v = x.copy()
 
-        phase = cmath.exp(1j * math.atan2(x[0].imag, x[0].real))
+    phase = cmath.exp(1j * math.atan2(x[0].imag, x[0].real))
 
-        v[0] += phase * norm_x
+    v[0] += phase * norm_x
 
-        v /= np.linalg.norm(v)
+    v /= np.linalg.norm(v)
 
     return (v, 2, -phase * norm_x)
 
@@ -128,10 +126,7 @@ def skew_tridiagonalize(A, overwrite_a=False, calc_q=True):
             y = tau * Q[:, i + 1 :] @ v
             Q[:, i + 1 :] -= np.outer(y, v.conj())
 
-    if calc_q:
-        return (np.asmatrix(A), np.asmatrix(Q))
-    else:
-        return np.asmatrix(A)
+    return (np.asmatrix(A), np.asmatrix(Q)) if calc_q else np.asmatrix(A)
 
 
 def skew_LTL(A, overwrite_a=False, calc_L=True, calc_P=True):
@@ -214,15 +209,12 @@ def skew_LTL(A, overwrite_a=False, calc_L=True, calc_P=True):
         P = sp.csr_matrix((np.ones(n), (np.arange(n), Pv)))
 
     if calc_L:
-        if calc_P:
-            return (np.asmatrix(A), np.asmatrix(L), P)
-        else:
-            return (np.asmatrix(A), np.asmatrix(L))
-    else:
-        if calc_P:
-            return (np.asmatrix(A), P)
-        else:
-            return np.asmatrix(A)
+        return (
+            (np.asmatrix(A), np.asmatrix(L), P)
+            if calc_P
+            else (np.asmatrix(A), np.asmatrix(L))
+        )
+    return (np.asmatrix(A), P) if calc_P else np.asmatrix(A)
 
 
 def pfaffian(A, overwrite_a=False, method="P", sign_only=False):
@@ -239,7 +231,7 @@ def pfaffian(A, overwrite_a=False, method="P", sign_only=False):
     # Check if it's skew-symmetric
     assert abs((A + A.T).max()) < 1e-14, abs((A + A.T).max())
     # Check that the method variable is appropriately set
-    assert method == "P" or method == "H"
+    assert method in ["P", "H"]
     if method == "H" and sign_only:
         raise Exception("Use `method='P'` when using `sign_only=True`")
     if method == "P":
@@ -293,25 +285,23 @@ def pfaffian_LTL(A, overwrite_a=False, sign_only=False):
             # every interchange corresponds to a "-" in det(P)
             pfaffian_val *= -1
 
-        # Now form the Gauss vector
-        if A[k + 1, k] != 0.0:
-            tau = A[k, k + 2 :].copy()
-            tau /= A[k, k + 1]
-
-            if sign_only:
-                pfaffian_val *= np.sign(A[k, k + 1])
-            else:
-                pfaffian_val *= A[k, k + 1]
-
-            if k + 2 < n:
-                # Update the matrix block A(k+2:,k+2)
-                A[k + 2 :, k + 2 :] += np.outer(tau, A[k + 2 :, k + 1])
-                A[k + 2 :, k + 2 :] -= np.outer(A[k + 2 :, k + 1], tau)
-        else:
+        if A[k + 1, k] == 0.0:
             # if we encounter a zero on the super/subdiagonal, the
             # Pfaffian is 0
             return 0.0
 
+        tau = A[k, k + 2 :].copy()
+        tau /= A[k, k + 1]
+
+        if sign_only:
+            pfaffian_val *= np.sign(A[k, k + 1])
+        else:
+            pfaffian_val *= A[k, k + 1]
+
+        if k + 2 < n:
+            # Update the matrix block A(k+2:,k+2)
+            A[k + 2 :, k + 2 :] += np.outer(tau, A[k + 2 :, k + 1])
+            A[k + 2 :, k + 2 :] -= np.outer(A[k + 2 :, k + 1], tau)
     return pfaffian_val
 
 

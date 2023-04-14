@@ -20,11 +20,10 @@ def filter_kwargs(sig, names, kwargs):
 def skip_pars(names1, names2, num_skipped):
     skipped_pars1 = list(names1.keys())[:num_skipped]
     skipped_pars2 = list(names2.keys())[:num_skipped]
-    if skipped_pars1 == skipped_pars2:
-        pars1 = list(names1.values())[num_skipped:]
-        pars2 = list(names2.values())[num_skipped:]
-    else:
-        raise Exception("First {} arguments " "have to be the same".format(num_skipped))
+    if skipped_pars1 != skipped_pars2:
+        raise Exception(f"First {num_skipped} arguments have to be the same")
+    pars1 = list(names1.values())[num_skipped:]
+    pars2 = list(names2.values())[num_skipped:]
     return pars1, pars2
 
 

@@ -15,7 +15,7 @@ import adaptive
 
 def learner_till(till, learner, data):
     new_learner = adaptive.Learner2D(None, bounds=learner.bounds)
-    new_learner.data = {k: v for k, v in data[:till]}
+    new_learner.data = dict(data[:till])
     for x, y in learner._bounds_points:
         # always include the bounds
         new_learner.tell((x, y), learner.data[x, y])
@@ -162,8 +162,7 @@ def bounds_from_saved_learner(fname):
     learner = adaptive.Learner2D(None, [(-1, 1), (-1, 1)])
     learner.load(fname)
     xs, ys = np.array(list(learner.data.keys())).T
-    bounds = [(xs.min(), xs.max()), (ys.min(), ys.max())]
-    return bounds
+    return [(xs.min(), xs.max()), (ys.min(), ys.max())]
 
 
 def load_learner(fname="data/mu-sweep2/data_learner_0246.pickle"):

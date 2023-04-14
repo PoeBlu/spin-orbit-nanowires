@@ -128,8 +128,7 @@ def apply_peierls_to_template(template, xyz_offset=(0, 0, 0)):
 
 def get_offset(shape, start, lat):
     coords = [site.pos for site in lat.shape(shape, start)()]
-    xyz_offset = np.mean(coords, axis=0)
-    return xyz_offset
+    return np.mean(coords, axis=0)
 
 
 # Shape functions
@@ -463,11 +462,7 @@ def make_lead(
             r_out=r2, r_in=r1, coverage_angle=coverage_angle, angle=angle, L=a, a=a
         )
 
-        if A_correction:
-            xyz_offset = get_offset(*shape_sc, lat)
-        else:
-            xyz_offset = (0, 0, 0)
-
+        xyz_offset = get_offset(*shape_sc, lat) if A_correction else (0, 0, 0)
         templ_sc = apply_peierls_to_template(templ_sc, xyz_offset=xyz_offset)
         templ_interface = apply_peierls_to_template(templ_interface)
         lead.fill(templ_sc, *shape_sc_lead)
@@ -686,8 +681,7 @@ def translation_ev(h, t, tol=1e6):
         for |r|=1 they are propagating modes.
     """
     a, b = kwant.physics.leads.setup_linsys(h, t, tol, None).eigenproblem
-    ev = kwant.physics.leads.unified_eigenproblem(a, b, tol=tol)[0]
-    return ev
+    return kwant.physics.leads.unified_eigenproblem(a, b, tol=tol)[0]
 
 
 def cell_mats(lead, params, bias=0):
@@ -745,23 +739,20 @@ def find_gap(lead, params, tol=1e-6):
     lim = [0, np.abs(bands(lead, params, ks=0)).min()]
     if gap_minimizer(lead, params, energy=0) < 1e-15:
         # No band gap
-        gap = 0
-    else:
-        while lim[1] - lim[0] > tol:
-            energy = sum(lim) / 2
-            par = gap_minimizer(lead, params, energy)
-            if par < 1e-10:
-                lim[1] = energy
-            else:
-                lim[0] = energy
-        gap = sum(lim) / 2
-    return gap
+        return 0
+    while lim[1] - lim[0] > tol:
+        energy = sum(lim) / 2
+        par = gap_minimizer(lead, params, energy)
+        if par < 1e-10:
+            lim[1] = energy
+        else:
+            lim[0] = energy
+    return sum(lim) / 2
 
 
 def get_cross_section(syst, pos, direction):
     coord = np.array([s.pos for s in syst.sites if s.pos[direction] == pos])
-    cross_section = np.delete(coord, direction, 1)
-    return cross_section
+    return np.delete(coord, direction, 1)
 
 
 def get_densities(lead, k, params):
@@ -801,8 +792,7 @@ def is_antisymmetric(H):
 
 def get_h_k(lead, params):
     h, t = cell_mats(lead, params)
-    h_k = lambda k: h + t * np.exp(1j * k) + t.T.conj() * np.exp(-1j * k)  # noqa: E731
-    return h_k
+    return lambda k: h + t * np.exp(1j * k) + t.T.conj() * np.exp(-1j * k)
 
 
 def make_skew_symmetric(ham):
@@ -854,9 +844,7 @@ def calculate_pfaffian(lead, params):
 
     pf_0 = np.sign(pf.pfaffian(1j * skew_h0, sign_only=True).real)
     pf_pi = np.sign(pf.pfaffian(1j * skew_h_pi, sign_only=True).real)
-    pfaf = pf_0 * pf_pi
-
-    return pfaf
+    return pf_0 * pf_pi
 
 
 def get_potential(params, syst_pars):
